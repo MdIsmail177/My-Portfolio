@@ -14,7 +14,7 @@ const CONTACT_LINKS = [
     icon: '📧',
     label: 'Email',
     value: 'apsarshaik2055@gmail.com',
-    href: 'mailto:apsarshaik2055@gmail.com',
+    href: 'https://mail.google.com/mail/?view=cm&fs=1&to=apsarshaik2055@gmail.com',
     id: 'contact-email',
   },
   {
@@ -37,14 +37,34 @@ export default function Contact() {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('https://formspree.io/f/mdayknkb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        const data = await res.json();
+        setError(data?.errors?.[0]?.message || 'Transmission failed. Please try again.');
+      }
+    } catch {
+      setError('Network error. Check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -202,8 +222,31 @@ export default function Contact() {
                       required
                     />
                   </div>
-                  <button type="submit" className="form-submit" id="contact-submit">
-                    TRANSMIT MESSAGE
+                  {error && (
+                    <div style={{
+                      marginBottom: 14,
+                      padding: '10px 14px',
+                      background: 'rgba(239,68,68,0.08)',
+                      border: '1px solid rgba(239,68,68,0.3)',
+                      borderRadius: 8,
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '0.73rem',
+                      color: '#f87171',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}>
+                      ⚠️ {error}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    className="form-submit"
+                    id="contact-submit"
+                    disabled={submitting}
+                    style={{ opacity: submitting ? 0.7 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}
+                  >
+                    {submitting ? '⏳ TRANSMITTING...' : 'TRANSMIT MESSAGE'}
                   </button>
                 </form>
               )}
